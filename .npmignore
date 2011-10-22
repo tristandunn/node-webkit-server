@@ -1,0 +1,6 @@
+vendor/webkit-server/src/*.o
+vendor/webkit-server/src/*.moc
+vendor/webkit-server/src/Makefile*
+vendor/webkit-server/src/qrc_*
+vendor/webkit-server/src/moc_*.cpp
+vendor/webkit-server/bin/webkit_server
