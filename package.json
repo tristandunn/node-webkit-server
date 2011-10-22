@@ -1,0 +1,15 @@
+{ "name"        : "webkit-server",
+  "version"     : "0.1.0",
+  "description" : "A driver for webkit-server.",
+  "keywords"    : ["driver", "headless", "webkit"],
+  "homepage"    : "https://github.com/tristandunn/node-webkit-server",
+  "author"      : "Tristan Dunn <hello@tristandunn.com> (http://tristandunn.com)",
+  "main"        : "index.js",
+  "repository"  : {
+    "type" : "git",
+    "url"  : "https://github.com/tristandunn/node-webkit-server.git"
+  },
+  "scripts" : {
+    "postinstall" : "node script/install.js"
+  }
+}

@@ -1,0 +1,7 @@
+*.o
+*.moc
+Makefile*
+qrc_*
+moc_*.cpp
+bin/webkit_server
+src/webkit_server
