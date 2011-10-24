@@ -1,29 +1,28 @@
 window.WebKitServer = {
-  nextIndex: 0,
-  nodes: {},
-  lastAttachedFile: "",
+  nodes            : {},
+  nextIndex        : 0,
+  lastAttachedFile : "",
 
-  invoke: function () {
+  invoke: function() {
     return this[WebKitServerInvocation.functionName].apply(this, WebKitServerInvocation.arguments);
   },
 
-  find: function (xpath) {
-    return this.findRelativeTo(document, xpath);
+  find: function(selector) {
+    return this.findRelativeTo(document, selector);
   },
 
-  findWithin: function (index, xpath) {
-    return this.findRelativeTo(this.nodes[index], xpath);
+  findWithin: function(index, selector) {
+    return this.findRelativeTo(this.nodes[index], selector);
   },
 
-  findRelativeTo: function (reference, xpath) {
-    var iterator = document.evaluate(xpath, reference, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-    var node;
-    var results = [];
-    while (node = iterator.iterateNext()) {
-      this.nextIndex++;
-      this.nodes[this.nextIndex] = node;
-      results.push(this.nextIndex);
+  findRelativeTo: function(parent, selector) {
+    var results  = [],
+        elements = parent.querySelectorAll(selector);
+
+    for (var index = 0, length = elements.length; index < length; index++) {
+      this.nodes[results.push(this.nextIndex++)] = elements[index];
     }
+
     return results.join(",");
   },
 
@@ -31,7 +30,7 @@ window.WebKitServer = {
     return document.evaluate("ancestor-or-self::html", this.nodes[index], null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue != null;
   },
 
-  text: function (index) {
+  text: function(index) {
     var node = this.nodes[index];
     var type = (node.type || node.tagName).toLowerCase();
     if (type == "textarea") {
@@ -41,7 +40,7 @@ window.WebKitServer = {
     }
   },
 
-  attribute: function (index, name) {
+  attribute: function(index, name) {
     switch(name) {
     case 'checked':
       return this.nodes[index].checked;
@@ -60,13 +59,13 @@ window.WebKitServer = {
     return this.nodes[index].tagName.toLowerCase();
   },
 
-  click: function (index) {
+  click: function(index) {
     var clickEvent = document.createEvent('MouseEvents');
     clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
     this.nodes[index].dispatchEvent(clickEvent);
   },
 
-  trigger: function (index, eventName) {
+  trigger: function(index, eventName) {
     var eventObject = document.createEvent("HTMLEvents");
     eventObject.initEvent(eventName, true, true);
     this.nodes[index].dispatchEvent(eventObject);
@@ -85,7 +84,7 @@ window.WebKitServer = {
     this.nodes[index].dispatchEvent(eventObject);
   },
 
-  visible: function (index) {
+  visible: function(index) {
     var element = this.nodes[index];
     while (element) {
       if (element.ownerDocument.defaultView.getComputedStyle(element, null).getPropertyValue("display") == 'none')
@@ -95,7 +94,7 @@ window.WebKitServer = {
     return true;
   },
 
-  selected: function (index) {
+  selected: function(index) {
     return this.nodes[index].selected;
   },
 
@@ -178,7 +177,7 @@ window.WebKitServer = {
     }
   },
 
-  dragTo: function (index, targetIndex) {
+  dragTo: function(index, targetIndex) {
     var element = this.nodes[index], target = this.nodes[targetIndex];
     var position = this.centerPostion(element);
     var options = {
@@ -202,4 +201,3 @@ window.WebKitServer = {
     mouseTrigger('mouseup', options);
   }
 };
-

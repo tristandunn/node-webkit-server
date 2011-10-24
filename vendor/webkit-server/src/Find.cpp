@@ -10,10 +10,8 @@ void Find::start(QStringList &arguments) {
   QVariant result = page()->invokeWebKitServerFunction("find", arguments);
 
   if (result.isValid()) {
-    message = result.toString();
-    emit finished(new Response(true, message));
+    emit finished(new Response(true, result.toString()));
   } else {
-    emit finished(new Response(false, "Invalid XPath expression"));
+    emit finished(new Response(false, "Invalid selector."));
   }
 }
-
