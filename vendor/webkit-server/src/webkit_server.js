@@ -20,7 +20,7 @@ window.WebKitServer = {
         elements = parent.querySelectorAll(selector);
 
     for (var index = 0, length = elements.length; index < length; index++) {
-      this.nodes[results.push(this.nextIndex++)] = elements[index];
+      this.nodes[results.push(++this.nextIndex)] = elements[index];
     }
 
     return results.join(",");
@@ -31,8 +31,9 @@ window.WebKitServer = {
   },
 
   text: function(index) {
-    var node = this.nodes[index];
-    var type = (node.type || node.tagName).toLowerCase();
+    var node = this.nodes[index],
+        type = (node.type || node.tagName).toLowerCase();
+
     if (type == "textarea") {
       return node.innerHTML;
     } else {
@@ -42,16 +43,9 @@ window.WebKitServer = {
 
   attribute: function(index, name) {
     switch(name) {
-    case 'checked':
-      return this.nodes[index].checked;
-      break;
-
-    case 'disabled':
-      return this.nodes[index].disabled;
-      break;
-
-    default:
-      return this.nodes[index].getAttribute(name);
+      case "checked":  return this.nodes[index].checked;
+      case "disabled": return this.nodes[index].disabled;
+      default:         return this.nodes[index].getAttribute(name);
     }
   },
 
@@ -60,8 +54,8 @@ window.WebKitServer = {
   },
 
   click: function(index) {
-    var clickEvent = document.createEvent('MouseEvents');
-    clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    var clickEvent = document.createEvent("MouseEvents");
+    clickEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
     this.nodes[index].dispatchEvent(clickEvent);
   },
 
@@ -73,7 +67,7 @@ window.WebKitServer = {
 
   keypress: function(index, altKey, ctrlKey, shiftKey, metaKey, keyCode, charCode) {
     var eventObject = document.createEvent("Events");
-    eventObject.initEvent('keypress', true, true);
+    eventObject.initEvent("keypress", true, true);
     eventObject.window = window;
     eventObject.altKey = altKey;
     eventObject.ctrlKey = ctrlKey;
@@ -86,11 +80,15 @@ window.WebKitServer = {
 
   visible: function(index) {
     var element = this.nodes[index];
+
     while (element) {
-      if (element.ownerDocument.defaultView.getComputedStyle(element, null).getPropertyValue("display") == 'none')
+      if (element.ownerDocument.defaultView.getComputedStyle(element, null).getPropertyValue("display") == "none") {
         return false;
+      }
+
       element = element.parentElement;
     }
+
     return true;
   },
 
@@ -103,29 +101,34 @@ window.WebKitServer = {
   },
 
   set: function(index, value) {
-    var node = this.nodes[index];
-    var type = (node.type || node.tagName).toLowerCase();
+    var node = this.nodes[index],
+        type = (node.type || node.tagName).toLowerCase();
+
     if (type == "text" || type == "textarea" || type == "password") {
       this.trigger(index, "focus");
+
       node.value = "";
-      var maxLength = this.attribute(index, "maxlength"),
-          length;
+
+      var length    = value.length,
+          maxLength = this.attribute(index, "maxlength");
+
       if (maxLength && value.length > maxLength) {
         length = maxLength;
-      } else {
-        length = value.length;
       }
 
-      for(var strindex = 0; strindex < length; strindex++) {
-        node.value += value[strindex];
+      for (var offset = 0; offset < length; offset++) {
+        node.value += value[offset];
+
         this.trigger(index, "keydown");
-        this.keypress(index, false, false, false, false, 0, value[strindex]);
+        this.keypress(index, false, false, false, false, 0, value[offset]);
         this.trigger(index, "keyup");
       }
+
       this.trigger(index, "change");
       this.trigger(index, "blur");
     } else if(type == "checkbox" || type == "radio") {
       node.checked = (value == "true");
+
       this.trigger(index, "click");
       this.trigger(index, "change");
     } else if(type == "file") {
@@ -137,28 +140,35 @@ window.WebKitServer = {
   },
 
   selectOption: function(index) {
-    this.nodes[index].selected = true;
-    this.nodes[index].setAttribute("selected", "selected");
+    var node = this.nodes[index];
+
+    node.selected = true;
+    node.setAttribute("selected", "selected");
     this.trigger(index, "change");
   },
 
   unselectOption: function(index) {
-    this.nodes[index].selected = false;
-    this.nodes[index].removeAttribute("selected");
+    var node = this.nodes[index];
+
+    node.selected = false;
+    node.removeAttribute("selected");
     this.trigger(index, "change");
   },
 
   centerPostion: function(element) {
     this.reflow(element);
-    var rect = element.getBoundingClientRect();
-    var position = {
-      x: rect.width / 2,
-      y: rect.height / 2
-    };
+
+    var rect     = element.getBoundingClientRect(),
+        position = {
+          x: rect.width / 2,
+          y: rect.height / 2
+        };
+
     do {
-        position.x += element.offsetLeft;
-        position.y += element.offsetTop;
+      position.x += element.offsetLeft;
+      position.y += element.offsetTop;
     } while ((element = element.offsetParent));
+
     position.x = Math.floor(position.x), position.y = Math.floor(position.y);
 
     return position;
@@ -166,38 +176,56 @@ window.WebKitServer = {
 
   reflow: function(element, force) {
     if (force || element.offsetWidth === 0) {
-      var prop, oldStyle = {}, newStyle = {position: "absolute", visibility : "hidden", display: "block" };
-      for (prop in newStyle)  {
-        oldStyle[prop] = element.style[prop];
-        element.style[prop] = newStyle[prop];
+      var property,
+          oldStyle = {},
+        newStyle = {
+          display    : "block",
+          position   : "absolute",
+          visibility : "hidden",
+        };
+
+      for (property in newStyle)  {
+        oldStyle[property]      = element.style[property];
+        element.style[property] = newStyle[property];
       }
-      element.offsetWidth, element.offsetHeight; // force reflow
-      for (prop in oldStyle)
-        element.style[prop] = oldStyle[prop];
+
+      element.offsetWidth;
+      element.offsetHeight;
+
+      for (property in oldStyle) {
+        element.style[property] = oldStyle[property];
+      }
     }
   },
 
   dragTo: function(index, targetIndex) {
-    var element = this.nodes[index], target = this.nodes[targetIndex];
-    var position = this.centerPostion(element);
-    var options = {
-      clientX: position.x,
-      clientY: position.y
-    };
-    var mouseTrigger = function(eventName, options) {
-      var eventObject = document.createEvent("MouseEvents");
-      eventObject.initMouseEvent(eventName, true, true, window, 0, 0, 0, options.clientX || 0, options.clientY || 0, false, false, false, false, 0, null);
-      element.dispatchEvent(eventObject);
-    }
-    mouseTrigger('mousedown', options);
-    options.clientX += 1, options.clientY += 1;
-    mouseTrigger('mousemove', options);
+    var element  = this.nodes[index],
+        target   = this.nodes[targetIndex],
+        position = this.centerPostion(element),
+        options  = {
+          clientX: position.x,
+          clientY: position.y
+        },
+        mouseTrigger = function(eventName, options) {
+          var eventObject = document.createEvent("MouseEvents");
+          eventObject.initMouseEvent(eventName, true, true, window, 0, 0, 0, options.clientX || 0, options.clientY || 0, false, false, false, false, 0, null);
+          element.dispatchEvent(eventObject);
+        };
 
-    position = this.centerPostion(target), options = {
+    mouseTrigger("mousedown", options);
+
+    options.clientX += 1;
+    options.clientY += 1;
+
+    mouseTrigger("mousemove", options);
+
+    position = this.centerPostion(target),
+    options  = {
       clientX: position.x,
       clientY: position.y
     };
-    mouseTrigger('mousemove', options);
-    mouseTrigger('mouseup', options);
+
+    mouseTrigger("mousemove", options);
+    mouseTrigger("mouseup", options);
   }
 };
