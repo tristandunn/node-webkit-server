@@ -6,7 +6,6 @@ Find::Find(WebPage *page, QObject *parent) : Command(page, parent) {
 }
 
 void Find::start(QStringList &arguments) {
-  QString message;
   QVariant result = page()->invokeWebKitServerFunction("find", arguments);
 
   if (result.isValid()) {

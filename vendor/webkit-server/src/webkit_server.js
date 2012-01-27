@@ -102,9 +102,10 @@ window.WebKitServer = {
 
   set: function(index, value) {
     var node = this.nodes[index],
-        type = (node.type || node.tagName).toLowerCase();
+        type = (node.type || node.tagName).toLowerCase(),
+        textTypes = ["email", "number", "password", "search", "tel", "text", "textarea", "url"];
 
-    if (type == "text" || type == "textarea" || type == "password") {
+    if (textTypes.indexOf(type) !== -1) {
       this.trigger(index, "focus");
 
       node.value = "";
@@ -126,12 +127,12 @@ window.WebKitServer = {
 
       this.trigger(index, "change");
       this.trigger(index, "blur");
-    } else if(type == "checkbox" || type == "radio") {
+    } else if (type === "checkbox" || type === "radio") {
       node.checked = (value == "true");
 
       this.trigger(index, "click");
       this.trigger(index, "change");
-    } else if(type == "file") {
+    } else if (type === "file") {
       this.lastAttachedFile = value;
       this.trigger(index, "click");
     } else {
