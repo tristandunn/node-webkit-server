@@ -53,7 +53,26 @@ window.WebKitServer = {
     return this.nodes[index].tagName.toLowerCase();
   },
 
+  submit: function(index) {
+    return this.nodes[index].submit();
+  },
+
+  mousedown: function(index) {
+    var mousedownEvent = document.createEvent("MouseEvents");
+    mousedownEvent.initMouseEvent("mousedown", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    this.nodes[index].dispatchEvent(mousedownEvent);
+  },
+
+  mouseup: function(index) {
+    var mouseupEvent = document.createEvent("MouseEvents");
+    mouseupEvent.initMouseEvent("mouseup", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    this.nodes[index].dispatchEvent(mouseupEvent);
+  },
+
   click: function(index) {
+    this.mousedown(index);
+    this.mouseup(index);
+
     var clickEvent = document.createEvent("MouseEvents");
     clickEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
     this.nodes[index].dispatchEvent(clickEvent);
@@ -128,31 +147,24 @@ window.WebKitServer = {
       this.trigger(index, "change");
       this.trigger(index, "blur");
     } else if (type === "checkbox" || type === "radio") {
-      node.checked = (value == "true");
-
-      this.trigger(index, "click");
-      this.trigger(index, "change");
+      if (node.checked != (value === "true")) {
+        this.click(index);
+      }
     } else if (type === "file") {
       this.lastAttachedFile = value;
-      this.trigger(index, "click");
+      this.click(index);
     } else {
       node.value = value;
     }
   },
 
   selectOption: function(index) {
-    var node = this.nodes[index];
-
-    node.selected = true;
-    node.setAttribute("selected", "selected");
+    this.nodes[index].selected = true;
     this.trigger(index, "change");
   },
 
   unselectOption: function(index) {
-    var node = this.nodes[index];
-
-    node.selected = false;
-    node.removeAttribute("selected");
+    this.nodes[index].selected = false;
     this.trigger(index, "change");
   },
 
