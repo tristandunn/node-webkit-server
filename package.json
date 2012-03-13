@@ -10,6 +10,6 @@
     "url"  : "https://github.com/tristandunn/node-webkit-server.git"
   },
   "scripts" : {
-    "postinstall" : "node script/install.js"
+    "postinstall" : "./vendor/webkit-server/build.sh"
   }
 }
