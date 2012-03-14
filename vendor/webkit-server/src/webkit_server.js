@@ -140,7 +140,7 @@ window.WebKitServer = {
         node.value += value[offset];
 
         this.trigger(index, "keydown");
-        this.keypress(index, false, false, false, false, 0, value[offset]);
+        this.keypress(index, false, false, false, false, 0, value.charCodeAt(offset));
         this.trigger(index, "keyup");
       }
 
