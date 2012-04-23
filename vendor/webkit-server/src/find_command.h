@@ -1,6 +1,6 @@
 #define CHECK_COMMAND(expectedName) \
   if (strcmp(#expectedName, name) == 0) { \
-    return new expectedName(m_page, this); \
+    return new expectedName(m_page, arguments, this); \
   }
 
 CHECK_COMMAND(Visit)
@@ -25,3 +25,4 @@ CHECK_COMMAND(SetProxy)
 CHECK_COMMAND(ConsoleMessages)
 CHECK_COMMAND(RequestedUrl)
 CHECK_COMMAND(CurrentUrl)
+CHECK_COMMAND(ResizeWindow)

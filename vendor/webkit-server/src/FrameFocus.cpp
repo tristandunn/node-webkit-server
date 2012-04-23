@@ -2,17 +2,17 @@
 #include "Command.h"
 #include "WebPage.h"
 
-FrameFocus::FrameFocus(WebPage *page, QObject *parent) : Command(page, parent) {
+FrameFocus::FrameFocus(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent) {
 }
 
-void FrameFocus::start(QStringList &arguments) {
+void FrameFocus::start() {
   findFrames();
-  switch(arguments.length()) {
+  switch(arguments().length()) {
     case 1:
-      focusId(arguments[0]);
+      focusId(arguments()[0]);
       break;
     case 2:
-      focusIndex(arguments[1].toInt());
+      focusIndex(arguments()[1].toInt());
       break;
     default:
       focusParent();
@@ -50,7 +50,7 @@ void FrameFocus::focusId(QString name) {
 
 void FrameFocus::focusParent() {
   if (page()->currentFrame()->parentFrame() == 0) {
-    emit finished(new Response(false, "Already at parent frame."));
+    emit finished(new Response(false, QString("Already at parent frame.")));
   } else {
     page()->currentFrame()->parentFrame()->setFocus();
     success();
@@ -58,7 +58,7 @@ void FrameFocus::focusParent() {
 }
 
 void FrameFocus::frameNotFound() {
-  emit finished(new Response(false, "Unable to locate frame. "));
+  emit finished(new Response(false, QString("Unable to locate frame. ")));
 }
 
 void FrameFocus::success() {

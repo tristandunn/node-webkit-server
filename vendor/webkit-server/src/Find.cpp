@@ -2,15 +2,16 @@
 #include "Command.h"
 #include "WebPage.h"
 
-Find::Find(WebPage *page, QObject *parent) : Command(page, parent) {
+Find::Find(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent) {
 }
 
-void Find::start(QStringList &arguments) {
-  QVariant result = page()->invokeWebKitServerFunction("find", arguments);
+void Find::start() {
+  QVariant result = page()->invokeWebKitServerFunction("find", arguments());
 
   if (result.isValid()) {
     emit finished(new Response(true, result.toString()));
   } else {
-    emit finished(new Response(false, "Invalid selector."));
+    emit finished(new Response(false, QString("Invalid selector.")));
   }
 }
+

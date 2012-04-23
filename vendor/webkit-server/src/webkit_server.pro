@@ -2,6 +2,7 @@ TEMPLATE = app
 TARGET = webkit_server
 DESTDIR = .
 HEADERS = \
+  ResizeWindow.h \
   CurrentUrl.h \
   RequestedUrl.h \
   ConsoleMessages.h \
@@ -34,8 +35,11 @@ HEADERS = \
   CommandParser.h \
   CommandFactory.h \
   SetProxy.h \
+  NullCommand.h \
+  PageLoadingCommand.h \
 
 SOURCES = \
+  ResizeWindow.cpp \
   CurrentUrl.cpp \
   RequestedUrl.cpp \
   ConsoleMessages.cpp \
@@ -69,6 +73,8 @@ SOURCES = \
   CommandParser.cpp \
   CommandFactory.cpp \
   SetProxy.cpp \
+  NullCommand.cpp \
+  PageLoadingCommand.cpp \
 
 RESOURCES = webkit_server.qrc
 QT += network webkit

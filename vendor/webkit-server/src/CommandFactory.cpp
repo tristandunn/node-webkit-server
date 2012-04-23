@@ -1,4 +1,5 @@
 #include "CommandFactory.h"
+#include "NullCommand.h"
 #include "Visit.h"
 #include "Find.h"
 #include "Command.h"
@@ -21,12 +22,15 @@
 #include "ConsoleMessages.h"
 #include "RequestedUrl.h"
 #include "CurrentUrl.h"
+#include "ResizeWindow.h"
 
 CommandFactory::CommandFactory(WebPage *page, QObject *parent) : QObject(parent) {
   m_page = page;
 }
 
-Command *CommandFactory::createCommand(const char *name) {
+Command *CommandFactory::createCommand(const char *name, QStringList &arguments) {
   #include "find_command.h"
-  return NULL;
+  arguments.clear();
+  arguments.append(QString(name));
+  return new NullCommand(m_page, arguments);
 }
