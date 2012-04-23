@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 — April 23, 2012
+
+* Updated vendored webkit-server files.
+
 ## 0.2.0 — March 14, 2012
 
 * Errors from webkit-server are now provided to callbacks as the first
