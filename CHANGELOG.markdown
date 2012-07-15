@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 — July 15, 2012
+
+* Updated vendored webkit-server files.
+
 ## 0.3.0 — April 23, 2012
 
 * Updated vendored webkit-server files.
