@@ -1,13 +1,12 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
 class QNetworkReply;
 
-class Source : public Command {
+class Source : public SocketCommand {
   Q_OBJECT
 
   public:
-    Source(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    Source(WebPageManager *, QStringList &arguments, QObject *parent = 0);
     virtual void start();
 
   public slots:

@@ -4,7 +4,7 @@ A standalone version of the WebKit server in [capybara-webkit](https://github.co
 
 ## Dependencies
 
-webkit-server depends on a WebKit implementation from Qt, a cross-platform development toolkit. You'll need to download the Qt libraries to build the binary. See [Installing QT](https://github.com/thoughtbot/capybara-webkit/wiki/Installing-QT) for how to install it on your system.
+webkit-server depends on a WebKit implementation from Qt, a cross-platform development toolkit. You'll need to download the Qt libraries to build the binary. See [Installing Qt](https://github.com/thoughtbot/capybara-webkit/wiki/Installing-Qt-and-compiling-capybara-webkit) for how to install it on your system.
 
 ## Building
 

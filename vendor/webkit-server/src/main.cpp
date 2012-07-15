@@ -16,10 +16,7 @@ int main(int argc, char **argv) {
   QApplication app(argc, argv);
   app.setApplicationName("webkit_server");
 
-  QStringList args = app.arguments();
-  bool ignoreSslErrors = args.contains("--ignore-ssl-errors");
-
-  Server server(0, ignoreSslErrors);
+  Server server(0);
 
   if (server.start()) {
     std::cout << "webkit_server server started, listening on port: " << server.server_port() << std::endl;

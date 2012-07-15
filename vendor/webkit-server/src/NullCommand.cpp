@@ -1,10 +1,13 @@
 #include "NullCommand.h"
 #include "WebPage.h"
+#include "WebPageManager.h"
 
-NullCommand::NullCommand(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent) {}
+NullCommand::NullCommand(QString name, QObject *parent) : Command(parent) {
+  m_name = name;
+}
 
 void NullCommand::start() {
-  QString failure = QString("Unknown command: ") + arguments()[0] + "\n";
+  QString failure = QString("Unknown command: ") + m_name + "\n";
   emit finished(new Response(false, failure));
 }
 

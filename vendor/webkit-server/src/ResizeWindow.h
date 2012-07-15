@@ -1,12 +1,10 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
-
-class ResizeWindow : public Command {
+class ResizeWindow : public SocketCommand {
   Q_OBJECT
 
   public:
-    ResizeWindow(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    ResizeWindow(WebPageManager *, QStringList &arguments, QObject *parent = 0);
     virtual void start();
 };
 

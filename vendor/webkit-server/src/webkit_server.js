@@ -71,6 +71,7 @@ window.WebKitServer = {
 
   click: function(index) {
     this.mousedown(index);
+    this.focus(index);
     this.mouseup(index);
 
     var clickEvent = document.createEvent("MouseEvents");
@@ -180,7 +181,7 @@ window.WebKitServer = {
         textTypes = ["email", "number", "password", "search", "tel", "text", "textarea", "url"];
 
     if (textTypes.indexOf(type) !== -1) {
-      this.trigger(index, "focus");
+      this.focus(index);
 
       node.value = "";
 
@@ -202,7 +203,6 @@ window.WebKitServer = {
       }
 
       this.trigger(index, "change");
-      this.trigger(index, "blur");
     } else if (type === "checkbox" || type === "radio") {
       if (node.checked != (value === "true")) {
         this.click(index);
@@ -213,6 +213,10 @@ window.WebKitServer = {
     } else {
       node.value = value;
     }
+  },
+
+  focus: function(index) {
+    this.index[index].focus();
   },
 
   selectOption: function(index) {
@@ -239,7 +243,8 @@ window.WebKitServer = {
       position.y += element.offsetTop;
     } while ((element = element.offsetParent));
 
-    position.x = Math.floor(position.x), position.y = Math.floor(position.y);
+    position.x = Math.floor(position.x);
+    position.y = Math.floor(position.y);
 
     return position;
   },
@@ -289,7 +294,7 @@ window.WebKitServer = {
 
     mouseTrigger("mousemove", options);
 
-    position = this.centerPostion(target),
+    position = this.centerPostion(target);
     options  = {
       clientX: position.x,
       clientY: position.y

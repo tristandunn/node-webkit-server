@@ -1,11 +1,9 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
-
-class SetCookie : public Command {
+class SetCookie : public SocketCommand {
   Q_OBJECT;
 
  public:
-  SetCookie(WebPage *page, QStringList &arguments, QObject *parent = 0);
+  SetCookie(WebPageManager *, QStringList &arguments, QObject *parent = 0);
   virtual void start();
 };

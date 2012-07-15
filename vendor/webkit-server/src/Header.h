@@ -1,11 +1,9 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
-
-class Header : public Command {
+class Header : public SocketCommand {
   Q_OBJECT
 
   public:
-    Header(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    Header(WebPageManager *, QStringList &arguments, QObject *parent = 0);
     virtual void start();
 };

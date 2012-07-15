@@ -1,19 +1,8 @@
-#include "Command.h"
-#include "WebPage.h"
+#include "SocketCommand.h"
 
-Command::Command(WebPage *page, QStringList &arguments, QObject *parent) : QObject(parent) {
-  m_page = page;
-  m_arguments = arguments;
+Command::Command(QObject *parent) : QObject(parent) {
 }
 
-void Command::start() {
+QString Command::toString() const {
+  return metaObject()->className();
 }
-
-WebPage *Command::page() {
-  return m_page;
-}
-
-QStringList &Command::arguments() {
-  return m_arguments;
-}
-

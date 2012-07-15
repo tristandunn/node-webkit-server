@@ -1,17 +1,28 @@
 #include "WebPage.h"
+#include "WebPageManager.h"
 #include "JavascriptInvocation.h"
 #include "NetworkAccessManager.h"
 #include "NetworkCookieJar.h"
 #include "UnsupportedContentHandler.h"
 #include <QResource>
 #include <iostream>
+#include <QWebSettings>
+#include <QUuid>
 
-WebPage::WebPage(QObject *parent) : QWebPage(parent) {
+WebPage::WebPage(WebPageManager *manager, QObject *parent) : QWebPage(parent) {
+  m_loading = false;
+  m_failed = false;
+  m_manager = manager;
+  m_uuid = QUuid::createUuid().toString();
+  m_lastStatus = 0;
+
   setForwardUnsupportedContent(true);
   loadJavascript();
   setUserStylesheet();
 
-  m_loading = false;
+  m_confirm = true;
+  m_prompt = false;
+  m_prompt_text = QString();
   this->setCustomNetworkAccessManager();
 
   connect(this, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
@@ -21,18 +32,43 @@ WebPage::WebPage(QObject *parent) : QWebPage(parent) {
   connect(this, SIGNAL(unsupportedContent(QNetworkReply*)),
       this, SLOT(handleUnsupportedContent(QNetworkReply*)));
   resetWindowSize();
+
+  settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, true);
 }
 
 void WebPage::resetWindowSize() {
   this->setViewportSize(QSize(1680, 1050));
+  this->settings()->setAttribute(QWebSettings::LocalStorageDatabaseEnabled, true);
 }
 
 void WebPage::setCustomNetworkAccessManager() {
-  NetworkAccessManager *manager = new NetworkAccessManager();
-  manager->setCookieJar(new NetworkCookieJar());
+  NetworkAccessManager *manager = new NetworkAccessManager(this);
+  manager->setCookieJar(m_manager->cookieJar());
   this->setNetworkAccessManager(manager);
-  connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(replyFinished(QNetworkReply *)));
-  connect(manager, SIGNAL(sslErrors(QNetworkReply *, QList<QSslError>)), this, SLOT(ignoreSslErrors(QNetworkReply *, QList<QSslError>)));
+  connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(networkAccessManagerFinishedReply(QNetworkReply *)));
+  connect(manager, SIGNAL(sslErrors(QNetworkReply *, QList<QSslError>)),
+          this, SLOT(handleSslErrorsForReply(QNetworkReply *, QList<QSslError>)));
+  connect(manager, SIGNAL(requestCreated(QNetworkReply *)), this, SLOT(networkAccessManagerCreatedRequest(QNetworkReply *)));
+}
+
+void WebPage::networkAccessManagerCreatedRequest(QNetworkReply *reply) {
+  emit requestCreated(reply);
+}
+
+void WebPage::networkAccessManagerFinishedReply(QNetworkReply *reply) {
+  if (reply->url() == this->currentFrame()->url()) {
+    QStringList headers;
+    m_lastStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QList<QByteArray> list = reply->rawHeaderList();
+
+    int length = list.size();
+    for(int i = 0; i < length; i++) {
+      headers << list.at(i)+": "+reply->rawHeader(list.at(i));
+    }
+
+    m_pageHeaders = headers.join("\n");
+  }
+  emit replyFinished(reply);
 }
 
 void WebPage::loadJavascript() {
@@ -66,6 +102,18 @@ QString WebPage::consoleMessages() {
   return m_consoleMessages.join("\n");
 }
 
+QString WebPage::alertMessages() {
+  return m_alertMessages.join("\n");
+}
+
+QString WebPage::confirmMessages() {
+  return m_confirmMessages.join("\n");
+}
+
+QString WebPage::promptMessages() {
+  return m_promptMessages.join("\n");
+}
+
 void WebPage::setUserAgent(QString userAgent) {
   m_userAgent = userAgent;
 }
@@ -84,7 +132,7 @@ bool WebPage::shouldInterruptJavaScript() {
   return false;
 }
 
-QVariant WebPage::invokeWebKitServerFunction(const char *name, QStringList &arguments) {
+QVariant WebPage::invokeWebKitServerFunction(const char *name, const QStringList &arguments) {
   QString qname(name);
   QString objectName("WebKitServerInvocation");
   JavascriptInvocation invocation(qname, arguments);
@@ -93,7 +141,7 @@ QVariant WebPage::invokeWebKitServerFunction(const char *name, QStringList &argu
   return currentFrame()->evaluateJavaScript(javascript);
 }
 
-QVariant WebPage::invokeWebKitServerFunction(QString &name, QStringList &arguments) {
+QVariant WebPage::invokeWebKitServerFunction(QString &name, const QStringList &arguments) {
   return invokeWebKitServerFunction(name.toAscii().data(), arguments);
 }
 
@@ -107,30 +155,39 @@ void WebPage::javaScriptConsoleMessage(const QString &message, int lineNumber, c
 
 void WebPage::javaScriptAlert(QWebFrame *frame, const QString &message) {
   Q_UNUSED(frame);
+  m_alertMessages.append(message);
   std::cout << "ALERT: " << qPrintable(message) << std::endl;
 }
 
 bool WebPage::javaScriptConfirm(QWebFrame *frame, const QString &message) {
   Q_UNUSED(frame);
-  Q_UNUSED(message);
-  return true;
+  m_confirmMessages.append(message);
+  return m_confirm;
 }
 
 bool WebPage::javaScriptPrompt(QWebFrame *frame, const QString &message, const QString &defaultValue, QString *result) {
   Q_UNUSED(frame)
-  Q_UNUSED(message)
-  Q_UNUSED(defaultValue)
-  Q_UNUSED(result)
-  return false;
+  m_promptMessages.append(message);
+  if (m_prompt) {
+    if (m_prompt_text.isNull()) {
+      *result = defaultValue;
+    } else {
+      *result = m_prompt_text;
+    }
+  }
+  return m_prompt;
 }
 
 void WebPage::loadStarted() {
   m_loading = true;
+  m_errorPageMessage = QString();
 }
 
 void WebPage::loadFinished(bool success) {
+  Q_UNUSED(success);
   m_loading = false;
-  emit pageFinished(success);
+  emit pageFinished(!m_failed);
+  m_failed = false;
 }
 
 bool WebPage::isLoading() const {
@@ -138,7 +195,11 @@ bool WebPage::isLoading() const {
 }
 
 QString WebPage::failureString() {
-  return QString("Unable to load URL: ") + currentFrame()->requestedUrl().toString();
+  QString message = QString("Unable to load URL: ") + currentFrame()->requestedUrl().toString();
+  if (m_errorPageMessage.isEmpty())
+    return message;
+  else
+    return message + m_errorPageMessage;
 }
 
 bool WebPage::render(const QString &fileName) {
@@ -176,11 +237,16 @@ QString WebPage::chooseFile(QWebFrame *parentFrame, const QString &suggestedFile
 }
 
 bool WebPage::extension(Extension extension, const ExtensionOption *option, ExtensionReturn *output) {
-  Q_UNUSED(option);
   if (extension == ChooseMultipleFilesExtension) {
     QStringList names = QStringList() << getLastAttachedFileName();
     static_cast<ChooseMultipleFilesExtensionReturn*>(output)->fileNames = names;
     return true;
+  }
+  else if (extension == QWebPage::ErrorPageExtension) {
+    ErrorPageExtensionOption *errorOption = (ErrorPageExtensionOption*) option;
+    m_errorPageMessage = " because of error loading " + errorOption->url.toString() + ": " + errorOption->errorString;
+    m_failed = true;
+    return false;
   }
   return false;
 }
@@ -189,46 +255,17 @@ QString WebPage::getLastAttachedFileName() {
   return currentFrame()->evaluateJavaScript(QString("WebKitServer.lastAttachedFile")).toString();
 }
 
-void WebPage::replyFinished(QNetworkReply *reply) {
-  if (reply->url() == this->currentFrame()->url()) {
-    QStringList headers;
-    m_lastStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    QList<QByteArray> list = reply->rawHeaderList();
-
-    int length = list.size();
-    for(int i = 0; i < length; i++) {
-      headers << list.at(i)+": "+reply->rawHeader(list.at(i));
-    }
-
-    m_pageHeaders = headers.join("\n");
-  }
-}
-
-void WebPage::ignoreSslErrors(QNetworkReply *reply, const QList<QSslError> &errors) {
-  if (m_ignoreSslErrors)
+void WebPage::handleSslErrorsForReply(QNetworkReply *reply, const QList<QSslError> &errors) {
+  if (m_manager->ignoreSslErrors())
     reply->ignoreSslErrors(errors);
 }
 
-void WebPage::setIgnoreSslErrors(bool ignore) {
-  m_ignoreSslErrors = ignore;
+void WebPage::setSkipImageLoading(bool skip) {
+  settings()->setAttribute(QWebSettings::AutoLoadImages, !skip);
 }
-
-bool WebPage::ignoreSslErrors() {
-  return m_ignoreSslErrors;
-}
-
 
 int WebPage::getLastStatus() {
   return m_lastStatus;
-}
-
-void WebPage::resetResponseHeaders() {
-  m_lastStatus = 0;
-  m_pageHeaders = QString();
-}
-
-void WebPage::resetConsoleMessages() {
-  m_consoleMessages.clear();
 }
 
 QString WebPage::pageHeaders() {
@@ -236,6 +273,61 @@ QString WebPage::pageHeaders() {
 }
 
 void WebPage::handleUnsupportedContent(QNetworkReply *reply) {
-  UnsupportedContentHandler *handler = new UnsupportedContentHandler(this, reply);
-  Q_UNUSED(handler);
+  QVariant contentMimeType = reply->header(QNetworkRequest::ContentTypeHeader);
+  if(!contentMimeType.isNull()) {
+    triggerAction(QWebPage::Stop);
+    UnsupportedContentHandler *handler = new UnsupportedContentHandler(this, reply);
+    Q_UNUSED(handler);
+  }
 }
+
+bool WebPage::supportsExtension(Extension extension) const {
+  if (extension == ErrorPageExtension)
+    return true;
+  else if (extension == ChooseMultipleFilesExtension)
+    return true;
+  else
+    return false;
+}
+
+QWebPage *WebPage::createWindow(WebWindowType type) {
+  Q_UNUSED(type);
+  return m_manager->createPage(this);
+}
+
+QString WebPage::uuid() {
+  return m_uuid;
+}
+
+QString WebPage::getWindowName() {
+  QVariant windowName = mainFrame()->evaluateJavaScript("window.name");
+
+  if (windowName.isValid())
+    return windowName.toString();
+  else
+    return "";
+}
+
+bool WebPage::matchesWindowSelector(QString selector) {
+  return (selector == getWindowName()           ||
+      selector == mainFrame()->title()          ||
+      selector == mainFrame()->url().toString() ||
+      selector == uuid());
+}
+
+void WebPage::setFocus() {
+  m_manager->setCurrentPage(this);
+}
+
+void WebPage::setConfirmAction(QString action) {
+  m_confirm = (action == "Yes");
+}
+
+void WebPage::setPromptAction(QString action) {
+  m_prompt = (action == "Yes");
+}
+
+void WebPage::setPromptText(QString text) {
+  m_prompt_text = text;
+}
+

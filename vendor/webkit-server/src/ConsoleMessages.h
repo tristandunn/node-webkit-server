@@ -1,12 +1,10 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
-
-class ConsoleMessages : public Command {
+class ConsoleMessages : public SocketCommand {
   Q_OBJECT
 
   public:
-    ConsoleMessages(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    ConsoleMessages(WebPageManager *, QStringList &arguments, QObject *parent = 0);
     virtual void start();
 };
 

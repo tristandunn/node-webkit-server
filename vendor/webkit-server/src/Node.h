@@ -1,13 +1,12 @@
-#include "Command.h"
+#include "SocketCommand.h"
 #include <QStringList>
 
-class WebPage;
-
-class Node : public Command {
+class Node : public SocketCommand {
   Q_OBJECT
 
   public:
-    Node(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    Node(WebPageManager *manager, QStringList &arguments, QObject *parent = 0);
     virtual void start();
+    virtual QString toString() const;
 };
 

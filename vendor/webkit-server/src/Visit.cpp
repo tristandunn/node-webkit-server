@@ -1,8 +1,9 @@
 #include "Visit.h"
-#include "Command.h"
+#include "SocketCommand.h"
 #include "WebPage.h"
+#include "WebPageManager.h"
 
-Visit::Visit(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent) {
+Visit::Visit(WebPageManager *manager, QStringList &arguments, QObject *parent) : SocketCommand(manager, arguments, parent) {
 }
 
 void Visit::start() {

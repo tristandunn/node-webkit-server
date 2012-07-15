@@ -1,15 +1,10 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
-
-class Reset : public Command {
+class Reset : public SocketCommand {
   Q_OBJECT
 
   public:
-    Reset(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    Reset(WebPageManager *, QStringList &arguments, QObject *parent = 0);
     virtual void start();
-
-  private:
-    void resetHistory();
 };
 

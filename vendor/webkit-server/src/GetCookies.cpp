@@ -1,17 +1,16 @@
 #include "GetCookies.h"
 #include "WebPage.h"
+#include "WebPageManager.h"
 #include "NetworkCookieJar.h"
 
-GetCookies::GetCookies(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent)
+GetCookies::GetCookies(WebPageManager *manager, QStringList &arguments, QObject *parent) : SocketCommand(manager, arguments, parent)
 {
   m_buffer = "";
 }
 
 void GetCookies::start()
 {
-  NetworkCookieJar *jar = qobject_cast<NetworkCookieJar*>(page()
-                                                          ->networkAccessManager()
-                                                          ->cookieJar());
+  NetworkCookieJar *jar = manager()->cookieJar();
   foreach (QNetworkCookie cookie, jar->getAllCookies()) {
     m_buffer.append(cookie.toRawForm());
     m_buffer.append("\n");

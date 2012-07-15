@@ -1,17 +1,20 @@
 #include "Find.h"
-#include "Command.h"
+#include "SocketCommand.h"
 #include "WebPage.h"
+#include "WebPageManager.h"
 
-Find::Find(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent) {
+Find::Find(WebPageManager *manager, QStringList &arguments, QObject *parent) : SocketCommand(manager, arguments, parent) {
 }
 
 void Find::start() {
+  QString message;
   QVariant result = page()->invokeWebKitServerFunction("find", arguments());
 
   if (result.isValid()) {
-    emit finished(new Response(true, result.toString()));
+    message = result.toString();
+    emit finished(new Response(true, message));
   } else {
-    emit finished(new Response(false, QString("Invalid selector.")));
+    emit finished(new Response(false, QString("Invalid XPath expression")));
   }
 }
 

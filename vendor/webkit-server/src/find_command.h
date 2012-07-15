@@ -1,6 +1,6 @@
 #define CHECK_COMMAND(expectedName) \
   if (strcmp(#expectedName, name) == 0) { \
-    return new expectedName(m_page, arguments, this); \
+    return new expectedName(m_manager, arguments, this); \
   }
 
 CHECK_COMMAND(Visit)
@@ -20,9 +20,22 @@ CHECK_COMMAND(Headers)
 CHECK_COMMAND(SetCookie)
 CHECK_COMMAND(ClearCookies)
 CHECK_COMMAND(GetCookies)
-CHECK_COMMAND(Headers)
 CHECK_COMMAND(SetProxy)
 CHECK_COMMAND(ConsoleMessages)
 CHECK_COMMAND(RequestedUrl)
 CHECK_COMMAND(CurrentUrl)
 CHECK_COMMAND(ResizeWindow)
+CHECK_COMMAND(IgnoreSslErrors)
+CHECK_COMMAND(SetSkipImageLoading)
+CHECK_COMMAND(WindowFocus)
+CHECK_COMMAND(GetWindowHandles)
+CHECK_COMMAND(GetWindowHandle)
+CHECK_COMMAND(Authenticate)
+CHECK_COMMAND(EnableLogging)
+CHECK_COMMAND(SetConfirmAction)
+CHECK_COMMAND(SetPromptAction)
+CHECK_COMMAND(SetPromptText)
+CHECK_COMMAND(ClearPromptText)
+CHECK_COMMAND(JavascriptAlertMessages)
+CHECK_COMMAND(JavascriptConfirmMessages)
+CHECK_COMMAND(JavascriptPromptMessages)

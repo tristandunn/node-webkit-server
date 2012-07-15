@@ -1,12 +1,10 @@
-#include "Command.h"
+#include "SocketCommand.h"
 
-class WebPage;
-
-class Find : public Command {
+class Find : public SocketCommand {
   Q_OBJECT
 
   public:
-    Find(WebPage *page, QStringList &arguments, QObject *parent = 0);
+    Find(WebPageManager *, QStringList &arguments, QObject *parent = 0);
     virtual void start();
 };
 

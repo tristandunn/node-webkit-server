@@ -1,7 +1,8 @@
 #include "Render.h"
 #include "WebPage.h"
+#include "WebPageManager.h"
 
-Render::Render(WebPage *page, QStringList &arguments, QObject *parent) : Command(page, arguments, parent) {
+Render::Render(WebPageManager *manager, QStringList &arguments, QObject *parent) : SocketCommand(manager, arguments, parent) {
 }
 
 void Render::start() {
