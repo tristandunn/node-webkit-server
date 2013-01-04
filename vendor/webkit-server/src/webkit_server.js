@@ -1,7 +1,7 @@
 window.WebKitServer = {
-  nodes            : {},
-  nextIndex        : 0,
-  lastAttachedFile : "",
+  nodes         : {},
+  nextIndex     : 0,
+  attachedFiles : [],
 
   invoke: function() {
     return this[WebKitServerInvocation.functionName].apply(this, WebKitServerInvocation.arguments);
@@ -9,6 +9,10 @@ window.WebKitServer = {
 
   find: function(selector) {
     return this.findRelativeTo(document, selector);
+  },
+
+  currentUrl: function() {
+    return window.location.toString();
   },
 
   findWithin: function(index, selector) {
@@ -42,11 +46,18 @@ window.WebKitServer = {
   },
 
   attribute: function(index, name) {
+    var node = this.nodes[index];
+
     switch(name) {
-      case "checked":  return this.nodes[index].checked;
-      case "disabled": return this.nodes[index].disabled;
-      default:         return this.nodes[index].getAttribute(name);
+      case "checked":  return node.checked;
+      case "disabled": return node.disabled;
+      case "multiple": return node.multiple;
+      default:         return node.getAttribute(name);
     }
+  },
+
+  hasAttribtue: function(index, name) {
+    return this.nodes[index].hasAttribute(name);
   },
 
   tagName: function(index) {
@@ -112,7 +123,9 @@ window.WebKitServer = {
     var element = this.nodes[index];
 
     while (element) {
-      if (element.ownerDocument.defaultView.getComputedStyle(element, null).getPropertyValue("display") == "none") {
+      var style = element.ownerDocument.defaultView.getComputedStyle(element, null);
+
+      if (style.getPropertyValue("display") == "none" || style.getPropertyValue("visibility") == "hidden") {
         return false;
       }
 
@@ -128,6 +141,15 @@ window.WebKitServer = {
 
   value: function(index) {
     return this.nodes[index].value;
+  },
+
+  getInnerHTML: function(index) {
+    return this.nodes[index].innerHTML;
+  },
+
+  setInnerHTML: function(index, value) {
+    this.nodes[index].innerHTML = value;
+    return true;
   },
 
   characterToKeyCode: function(character) {
@@ -208,7 +230,7 @@ window.WebKitServer = {
         this.click(index);
       }
     } else if (type === "file") {
-      this.lastAttachedFile = value;
+      this.attachedFiles = Array.prototype.slice.call(arguments, 1);
       this.click(index);
     } else {
       node.value = value;
@@ -302,5 +324,9 @@ window.WebKitServer = {
 
     mouseTrigger("mousemove", options);
     mouseTrigger("mouseup", options);
+  },
+
+  equals: function(index, targetIndex) {
+    return this.nodes[index] === this.nodes[targetIndex];
   }
 };

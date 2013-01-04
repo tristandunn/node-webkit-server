@@ -14,7 +14,7 @@ WebPage::WebPage(WebPageManager *manager, QObject *parent) : QWebPage(parent) {
   m_failed = false;
   m_manager = manager;
   m_uuid = QUuid::createUuid().toString();
-  m_lastStatus = 0;
+  m_unsupportedContentLoaded = false;
 
   setForwardUnsupportedContent(true);
   loadJavascript();
@@ -45,30 +45,15 @@ void WebPage::setCustomNetworkAccessManager() {
   NetworkAccessManager *manager = new NetworkAccessManager(this);
   manager->setCookieJar(m_manager->cookieJar());
   this->setNetworkAccessManager(manager);
-  connect(manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(networkAccessManagerFinishedReply(QNetworkReply *)));
   connect(manager, SIGNAL(sslErrors(QNetworkReply *, QList<QSslError>)),
           this, SLOT(handleSslErrorsForReply(QNetworkReply *, QList<QSslError>)));
-  connect(manager, SIGNAL(requestCreated(QNetworkReply *)), this, SLOT(networkAccessManagerCreatedRequest(QNetworkReply *)));
+  connect(manager, SIGNAL(requestCreated(QByteArray &, QNetworkReply *)),
+          SIGNAL(requestCreated(QByteArray &, QNetworkReply *)));
 }
 
-void WebPage::networkAccessManagerCreatedRequest(QNetworkReply *reply) {
-  emit requestCreated(reply);
-}
-
-void WebPage::networkAccessManagerFinishedReply(QNetworkReply *reply) {
-  if (reply->url() == this->currentFrame()->url()) {
-    QStringList headers;
-    m_lastStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    QList<QByteArray> list = reply->rawHeaderList();
-
-    int length = list.size();
-    for(int i = 0; i < length; i++) {
-      headers << list.at(i)+": "+reply->rawHeader(list.at(i));
-    }
-
-    m_pageHeaders = headers.join("\n");
-  }
-  emit replyFinished(reply);
+void WebPage::unsupportedContentFinishedReply(QNetworkReply *reply) {
+  m_unsupportedContentLoaded = true;
+  m_manager->replyFinished(reply);
 }
 
 void WebPage::loadJavascript() {
@@ -85,7 +70,7 @@ void WebPage::loadJavascript() {
 }
 
 void WebPage::setUserStylesheet() {
-  QString data = QString("* { font-family: 'Arial' ! important; }").toUtf8().toBase64();
+  QString data = QString("*, :first-line, :first-letter, :before, :after { font-family: 'Arial' ! important; }").toUtf8().toBase64();
   QUrl url = QUrl(QString("data:text/css;charset=utf-8;base64,") + data);
   settings()->setUserStyleSheetUrl(url);
 }
@@ -98,20 +83,20 @@ QString WebPage::userAgentForUrl(const QUrl &url ) const {
   }
 }
 
-QString WebPage::consoleMessages() {
-  return m_consoleMessages.join("\n");
+QVariantList WebPage::consoleMessages() {
+  return m_consoleMessages;
 }
 
-QString WebPage::alertMessages() {
-  return m_alertMessages.join("\n");
+QVariantList WebPage::alertMessages() {
+  return m_alertMessages;
 }
 
-QString WebPage::confirmMessages() {
-  return m_confirmMessages.join("\n");
+QVariantList WebPage::confirmMessages() {
+  return m_confirmMessages;
 }
 
-QString WebPage::promptMessages() {
-  return m_promptMessages.join("\n");
+QVariantList WebPage::promptMessages() {
+  return m_promptMessages;
 }
 
 void WebPage::setUserAgent(QString userAgent) {
@@ -146,17 +131,22 @@ QVariant WebPage::invokeWebKitServerFunction(QString &name, const QStringList &a
 }
 
 void WebPage::javaScriptConsoleMessage(const QString &message, int lineNumber, const QString &sourceID) {
-  QString fullMessage = QString::number(lineNumber) + "|" + message;
-  if (!sourceID.isEmpty())
-    fullMessage = sourceID + "|" + fullMessage;
-  m_consoleMessages.append(fullMessage);
-  std::cout << qPrintable(fullMessage) << std::endl;
+  QVariantMap m;
+  m["message"] = message;
+  QString fullMessage = QString(message);
+  if (!sourceID.isEmpty()) {
+    fullMessage = sourceID + "|" + QString::number(lineNumber) + "|" + fullMessage;
+    m["source"] = sourceID;
+    m["line_number"] = lineNumber;
+  }
+  m_consoleMessages.append(m);
+  m_manager->logger() << qPrintable(fullMessage);
 }
 
 void WebPage::javaScriptAlert(QWebFrame *frame, const QString &message) {
   Q_UNUSED(frame);
   m_alertMessages.append(message);
-  std::cout << "ALERT: " << qPrintable(message) << std::endl;
+  m_manager->logger() << "ALERT:" << qPrintable(message);
 }
 
 bool WebPage::javaScriptConfirm(QWebFrame *frame, const QString &message) {
@@ -181,6 +171,7 @@ bool WebPage::javaScriptPrompt(QWebFrame *frame, const QString &message, const Q
 void WebPage::loadStarted() {
   m_loading = true;
   m_errorPageMessage = QString();
+  m_unsupportedContentLoaded = false;
 }
 
 void WebPage::loadFinished(bool success) {
@@ -233,13 +224,12 @@ QString WebPage::chooseFile(QWebFrame *parentFrame, const QString &suggestedFile
   Q_UNUSED(parentFrame);
   Q_UNUSED(suggestedFile);
 
-  return getLastAttachedFileName();
+  return getAttachedFileNames().first();
 }
 
 bool WebPage::extension(Extension extension, const ExtensionOption *option, ExtensionReturn *output) {
   if (extension == ChooseMultipleFilesExtension) {
-    QStringList names = QStringList() << getLastAttachedFileName();
-    static_cast<ChooseMultipleFilesExtensionReturn*>(output)->fileNames = names;
+    static_cast<ChooseMultipleFilesExtensionReturn*>(output)->fileNames = getAttachedFileNames();
     return true;
   }
   else if (extension == QWebPage::ErrorPageExtension) {
@@ -251,8 +241,8 @@ bool WebPage::extension(Extension extension, const ExtensionOption *option, Exte
   return false;
 }
 
-QString WebPage::getLastAttachedFileName() {
-  return currentFrame()->evaluateJavaScript(QString("WebKitServer.lastAttachedFile")).toString();
+QStringList WebPage::getAttachedFileNames() {
+  return currentFrame()->evaluateJavaScript(QString("WebKitServer.attachedFiles")).toStringList();
 }
 
 void WebPage::handleSslErrorsForReply(QNetworkReply *reply, const QList<QSslError> &errors) {
@@ -265,11 +255,15 @@ void WebPage::setSkipImageLoading(bool skip) {
 }
 
 int WebPage::getLastStatus() {
-  return m_lastStatus;
+  return networkAccessManager()->statusFor(currentFrame()->requestedUrl());
 }
 
-QString WebPage::pageHeaders() {
-  return m_pageHeaders;
+const QList<QNetworkReply::RawHeaderPair> &WebPage::pageHeaders() {
+  return networkAccessManager()->headersFor(currentFrame()->requestedUrl());
+}
+
+NetworkAccessManager *WebPage::networkAccessManager() {
+  return qobject_cast<NetworkAccessManager *>(QWebPage::networkAccessManager());
 }
 
 void WebPage::handleUnsupportedContent(QNetworkReply *reply) {
@@ -277,8 +271,15 @@ void WebPage::handleUnsupportedContent(QNetworkReply *reply) {
   if(!contentMimeType.isNull()) {
     triggerAction(QWebPage::Stop);
     UnsupportedContentHandler *handler = new UnsupportedContentHandler(this, reply);
-    Q_UNUSED(handler);
+    if (reply->isFinished())
+      handler->renderNonHtmlContent();
+    else
+      handler->waitForReplyToFinish();
   }
+}
+
+bool WebPage::unsupportedContentLoaded() {
+  return m_unsupportedContentLoaded;
 }
 
 bool WebPage::supportsExtension(Extension extension) const {

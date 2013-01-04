@@ -9,13 +9,14 @@ PageLoadingCommand::PageLoadingCommand(Command *command, WebPageManager *manager
   m_pageLoadingFromCommand = false;
   m_pageSuccess = true;
   m_pendingResponse = NULL;
-  connect(m_manager, SIGNAL(loadStarted()), this, SLOT(pageLoadingFromCommand()));
-  connect(m_manager, SIGNAL(pageFinished(bool)), this, SLOT(pendingLoadFinished(bool)));
+  m_command->setParent(this);
 }
 
 void PageLoadingCommand::start() {
   m_manager->logger() << "Started" << m_command->toString();
   connect(m_command, SIGNAL(finished(Response *)), this, SLOT(commandFinished(Response *)));
+  connect(m_manager, SIGNAL(loadStarted()), this, SLOT(pageLoadingFromCommand()));
+  connect(m_manager, SIGNAL(pageFinished(bool)), this, SLOT(pendingLoadFinished(bool)));
   m_command->start();
 };
 
@@ -29,7 +30,7 @@ void PageLoadingCommand::pendingLoadFinished(bool success) {
         emit finished(m_pendingResponse);
       } else {
         QString message = m_manager->currentPage()->failureString();
-        emit finished(new Response(false, message));
+        emitFinished(false, message);
       }
     }
   }
@@ -42,8 +43,8 @@ void PageLoadingCommand::pageLoadingFromCommand() {
 
 void PageLoadingCommand::commandFinished(Response *response) {
   disconnect(m_manager, SIGNAL(loadStarted()), this, SLOT(pageLoadingFromCommand()));
-  m_manager->logger() << "Finished" << m_command->toString();
-  m_command->deleteLater();
+  m_manager->logger() << "Finished" << m_command->toString() << "with response" << response->toString();
+
   if (m_pageLoadingFromCommand)
     m_pendingResponse = response;
   else

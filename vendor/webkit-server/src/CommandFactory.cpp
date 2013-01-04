@@ -5,8 +5,6 @@
 #include "Find.h"
 #include "Reset.h"
 #include "Node.h"
-#include "Url.h"
-#include "Source.h"
 #include "Evaluate.h"
 #include "Execute.h"
 #include "FrameFocus.h"
@@ -20,8 +18,9 @@
 #include "GetCookies.h"
 #include "SetProxy.h"
 #include "ConsoleMessages.h"
-#include "RequestedUrl.h"
 #include "CurrentUrl.h"
+#include "SetTimeout.h"
+#include "GetTimeout.h"
 #include "ResizeWindow.h"
 #include "IgnoreSslErrors.h"
 #include "SetSkipImageLoading.h"
@@ -38,6 +37,7 @@
 #include "JavascriptAlertMessages.h"
 #include "JavascriptConfirmMessages.h"
 #include "JavascriptPromptMessages.h"
+#include "SetUrlBlacklist.h"
 
 CommandFactory::CommandFactory(WebPageManager *manager, QObject *parent) : QObject(parent) {
   m_manager = manager;
